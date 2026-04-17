@@ -30,7 +30,7 @@ export default function StockRow({
         <h4 className="text-white font-bold tracking-wide">{symbol}</h4>
         <p className="text-sm text-gray-500 font-medium">
           {type === 'holding' 
-            ? `${shares} shares @ $${avgPrice}` 
+            ? `${shares} ${ (symbol?.toUpperCase() === 'GC=F' || symbol?.toUpperCase() === 'SI=F') ? 'oz' : symbol?.endsWith('-USD') ? 'coins' : 'shares' } @ $${avgPrice}` 
             : name}
         </p>
       </div>

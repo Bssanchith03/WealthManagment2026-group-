@@ -3,16 +3,24 @@ import {
   LayoutGrid, 
   TrendingUp, 
   DollarSign, 
-  Landmark, 
+  Landmark,
+  Building2,
   FileText,
-  BarChart2
+  BarChart2,
+  CreditCard,
+  Bitcoin,
+  Wallet
 } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutGrid },
   { name: 'Stocks', path: '/stocks', icon: TrendingUp },
-  { name: 'Currencies', path: '/currencies', icon: DollarSign },
+  { name: 'Crypto', path: '/crypto', icon: Bitcoin },
+  { name: 'Accounts', path: '/accounts', icon: Building2 },
   { name: 'Fixed Deposits', path: '/fixed-deposits', icon: Landmark },
+  { name: 'Loans', path: '/loans', icon: Wallet },
+  { name: 'Currencies', path: '/currencies', icon: DollarSign },
+  { name: 'Subscriptions', path: '/subscriptions', icon: CreditCard },
   { name: 'News', path: '/news', icon: FileText },
 ];
 

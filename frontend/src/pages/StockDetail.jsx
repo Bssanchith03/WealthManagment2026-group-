@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, ArrowLeft, Star, Plus, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowLeft, Star, Plus, X, Check } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,19 +17,33 @@ export default function StockDetail() {
   // Interactive States
   const [isPinned, setIsPinned] = useState(false);
   const [showInvest, setShowInvest] = useState(false);
+  const [investType, setInvestType] = useState('BUY'); // 'BUY' or 'SELL'
   const [sharesToBuy, setSharesToBuy] = useState('');
   const [investError, setInvestError] = useState('');
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [userHoldings, setUserHoldings] = useState(0);
 
   const ranges = ['1W', '1M', '3M', '6M', '1Y'];
 
   useEffect(() => {
-    // Check if pinned initially
+    // Check if pinned and get holdings
     fetch(`http://localhost:5001/api/portfolio/${user.id}`)
       .then(res => res.json())
       .then(data => {
         if(data.watchlist && data.watchlist.includes(symbol?.toUpperCase())) {
           setIsPinned(true);
         }
+        const holding = data.holdings.find(h => h.symbol === symbol?.toUpperCase());
+        if (holding) setUserHoldings(parseFloat(holding.shares));
+      });
+    
+    // Fetch bank accounts
+    fetch(`http://localhost:5001/api/accounts/${user.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setAccounts(data);
+        if (data.length > 0) setSelectedAccountId(data[0].id);
       });
   }, [symbol, user.id]);
 
@@ -69,9 +83,17 @@ export default function StockDetail() {
   const handleInvest = async () => {
     const sharesNum = parseFloat(sharesToBuy);
     if (!sharesNum || sharesNum <= 0) return setInvestError("Enter a valid number");
+    if (!selectedAccountId) return setInvestError("Select a bank account");
     
-    if (user.liquid_cash < (sharesNum * stock.price)) {
-      return setInvestError("Insufficient liquid cash");
+    const selectedAccount = accounts.find(a => a.id === parseInt(selectedAccountId));
+    const totalValue = sharesNum * stock.price;
+
+    if (investType === 'BUY' && (!selectedAccount || parseFloat(selectedAccount.balance) < totalValue)) {
+      return setInvestError("Insufficient funds in selected account");
+    }
+
+    if (investType === 'SELL' && sharesNum > userHoldings) {
+      return setInvestError("Insufficient shares to sell");
     }
 
     try {
@@ -81,20 +103,24 @@ export default function StockDetail() {
         body: JSON.stringify({
           userId: user.id,
           symbol: stock.symbol,
-          type: 'BUY',
+          type: investType,
           shares: sharesNum,
-          price: stock.price
+          price: stock.price,
+          accountId: selectedAccountId
         })
       });
       if(!res.ok) {
          const d = await res.json();
          throw new Error(d.error);
       }
-      // Success
-      updateBalance(user.liquid_cash - (sharesNum * stock.price));
+      
+      const diff = investType === 'BUY' ? -totalValue : totalValue;
+      updateBalance(parseFloat(user.liquid_cash) + diff);
+      
       setShowInvest(false);
       setSharesToBuy('');
       setInvestError('');
+      window.location.reload(); 
     } catch(err) {
       setInvestError(err.message);
     }
@@ -109,6 +135,10 @@ export default function StockDetail() {
   }
 
   const isPositive = stock.change >= 0;
+
+  const isCommodity = symbol?.toUpperCase() === 'GC=F' || symbol?.toUpperCase() === 'SI=F';
+  const isCrypto = symbol?.toUpperCase().endsWith('-USD');
+  const unitLabel = isCommodity ? 'Ounces' : isCrypto ? 'Coins' : 'Shares';
 
   return (
     <div className="p-8 pb-20 max-w-5xl mx-auto relative">
@@ -143,14 +173,34 @@ export default function StockDetail() {
           >
             <Star size={20} fill={isPinned ? "#eab308" : "transparent"} stroke={isPinned ? "#eab308" : "#999"} />
           </button>
+          
+          {userHoldings > 0 && (
+             <button 
+               onClick={() => { setInvestType('SELL'); setShowInvest(true); }}
+               className="flex items-center gap-2 bg-[#222] border border-[#333] hover:border-red-500/50 text-red-500 font-bold px-5 py-2.5 rounded-xl transition-colors"
+             >
+               Sell {unitLabel}
+             </button>
+          )}
+
           <button 
-            onClick={() => setShowInvest(true)}
+            onClick={() => { setInvestType('BUY'); setShowInvest(true); }}
             className="flex items-center gap-2 bg-primary hover:bg-emerald-400 text-[#111] font-bold px-5 py-2.5 rounded-xl transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)]"
           >
-            <Plus size={20} /> Invest
+            <Plus size={20} /> Buy {unitLabel}
           </button>
         </div>
       </div>
+
+      {userHoldings > 0 && (
+         <div className="bg-gradient-to-r from-primary/10 to-transparent border-l-4 border-primary p-6 rounded-r-2xl mb-8 flex justify-between items-center">
+            <div>
+               <p className="text-[10px] text-primary uppercase font-black tracking-widest mb-1">Your Portfolio</p>
+               <h3 className="text-xl font-bold text-white">{userHoldings.toFixed(2)} {unitLabel}</h3>
+               <p className="text-xs text-gray-400 mt-1">Market Value: <span className="text-white font-bold">${(userHoldings * stock.price).toFixed(2)}</span></p>
+            </div>
+         </div>
+      )}
 
       {/* Chart Section */}
       <div className="bg-[#151515] border border-[#222] rounded-[24px] p-6 mb-6">
@@ -208,7 +258,6 @@ export default function StockDetail() {
          </div>
       </div>
 
-      {/* Detail Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           { label: 'Open', value: `$${stock.open.toFixed(2)}` },
@@ -223,46 +272,64 @@ export default function StockDetail() {
         ))}
       </div>
 
-      {/* Invest Modal Overlay */}
       {showInvest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#1a1a1a] border border-[#333] rounded-[24px] p-6 w-full max-w-md shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-[32px] p-8 w-full max-w-md shadow-2xl relative">
             <button 
               onClick={() => setShowInvest(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
             
-            <h2 className="text-xl font-bold text-white mb-1">Invest in {stock.symbol}</h2>
-            <p className="text-sm text-gray-400 mb-6">Current Price: ${stock.price.toFixed(2)}</p>
+            <h2 className="text-2xl font-bold text-white mb-1">{investType === 'BUY' ? 'Invest in' : 'Sell'} {stock.symbol}</h2>
+            <p className="text-sm text-gray-500 mb-8 font-medium">Price: ${stock.price.toFixed(2)} / {unitLabel}</p>
 
-            {investError && <p className="text-red-500 text-sm mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20">{investError}</p>}
+            {investError && <p className="text-red-500 text-sm mb-6 bg-red-500/10 p-4 rounded-xl border border-red-500/20">{investError}</p>}
 
-            <div className="mb-6">
-              <input 
-                type="number" 
-                value={sharesToBuy}
-                onChange={(e) => setSharesToBuy(e.target.value)}
-                placeholder="Number of shares" 
-                className="w-full bg-[#111] border border-primary/50 focus:border-primary rounded-xl p-4 text-white placeholder-gray-500 outline-none transition-colors"
-                autoFocus
-              />
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 ml-1">Quantity</label>
+                <input 
+                  type="number" 
+                  value={sharesToBuy}
+                  onChange={(e) => setSharesToBuy(e.target.value)}
+                  placeholder={`Amount of ${unitLabel.toLowerCase()}`} 
+                  className="w-full bg-[#111] border border-[#222] focus:border-primary rounded-2xl p-4 text-white placeholder-gray-600 outline-none transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 ml-1">Select Account</label>
+                <select 
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  className="w-full bg-[#111] border border-[#222] focus:border-primary rounded-2xl p-4 text-white appearance-none outline-none transition-colors"
+                >
+                  <option value="">Choose Bank Account</option>
+                  {accounts.map(acc => (
+                     <option key={acc.id} value={acc.id}>
+                        {acc.bank_name} (${parseFloat(acc.balance).toLocaleString()})
+                     </option>
+                  ))}
+                </select>
+              </div>
+
               {sharesToBuy && parseFloat(sharesToBuy) > 0 && (
-                 <p className="text-xs text-gray-400 mt-3 pl-1">
-                   Estimated Cost: <span className="font-bold text-white">${(parseFloat(sharesToBuy) * stock.price).toFixed(2)}</span>
-                   <br/>
-                   Available Cash: <span className="text-primary">${user.liquid_cash.toFixed(2)}</span>
-                 </p>
+                 <div className="bg-[#111] border border-[#222] p-4 rounded-2xl flex justify-between items-center animate-in slide-in-from-top-2 duration-200">
+                   <p className="text-xs text-gray-500 font-bold uppercase tracking-tight">Total {investType === 'BUY' ? 'Cost' : 'Proceeds'}</p>
+                   <p className="text-lg font-black text-white">${(parseFloat(sharesToBuy) * stock.price).toFixed(2)}</p>
+                 </div>
               )}
-            </div>
 
-            <button 
-              onClick={handleInvest}
-              className="w-full bg-[#2f7543] hover:bg-primary text-white font-bold py-3.5 rounded-xl transition-colors"
-            >
-              Confirm Investment
-            </button>
+              <button 
+                onClick={handleInvest}
+                className={`w-full ${investType === 'BUY' ? 'bg-primary' : 'bg-red-500'} text-black font-black py-5 rounded-2xl shadow-xl transition-all`}
+              >
+                Confirm {investType === 'BUY' ? 'Buy' : 'Sell'}
+              </button>
+            </div>
           </div>
         </div>
       )}

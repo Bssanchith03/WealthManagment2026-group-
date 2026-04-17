@@ -8,6 +8,10 @@ import StockDetail from './pages/StockDetail';
 import Currencies from './pages/Currencies';
 import FixedDeposits from './pages/FixedDeposits';
 import News from './pages/News';
+import Subscriptions from './pages/Subscriptions';
+import Crypto from './pages/Crypto';
+import Loans from './pages/Loans';
+import TransactionalAccounts from './pages/TransactionalAccounts';
 
 function Layout({ children }) {
   const { user } = useAuth();
@@ -37,6 +41,10 @@ function App() {
         <Route path="/stocks/:symbol" element={<Layout><StockDetail /></Layout>} />
         <Route path="/currencies" element={<Layout><Currencies /></Layout>} />
         <Route path="/fixed-deposits" element={<Layout><FixedDeposits /></Layout>} />
+        <Route path="/subscriptions" element={<Layout><Subscriptions /></Layout>} />
+        <Route path="/crypto" element={<Layout><Crypto /></Layout>} />
+        <Route path="/accounts" element={<Layout><TransactionalAccounts /></Layout>} />
+        <Route path="/loans" element={<Layout><Loans /></Layout>} />
         <Route path="/news" element={<Layout><News /></Layout>} />
         
         {/* Fallback */}

@@ -94,6 +94,59 @@ async function initDB() {
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS loans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type ENUM('Home', 'Car', 'Business', 'Education') NOT NULL,
+        bank_name VARCHAR(255) NOT NULL,
+        principal_amount DECIMAL(15, 2) NOT NULL,
+        remaining_balance DECIMAL(15, 2) NOT NULL,
+        interest_rate DECIMAL(5, 2) NOT NULL,
+        duration_months INT NOT NULL,
+        start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS loan_payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        loan_id INT NOT NULL,
+        amount DECIMAL(15, 2) NOT NULL,
+        payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        payment_type ENUM('Regular', 'Extra') DEFAULT 'Regular',
+        FOREIGN KEY (loan_id) REFERENCES loans(id) ON DELETE CASCADE
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bills (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        company VARCHAR(255) NOT NULL,
+        package_name VARCHAR(255) NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        frequency VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bank_accounts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        bank_name VARCHAR(255) NOT NULL,
+        phone_number VARCHAR(50) NOT NULL,
+        balance DECIMAL(15, 2) DEFAULT 0.00,
+        is_primary BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
     console.log('Database and tables initialized successfully.');
   } catch (err) {
     console.error('Error initializing database: ', err);
