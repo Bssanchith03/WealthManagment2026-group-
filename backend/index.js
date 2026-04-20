@@ -36,7 +36,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Portfolio Details
 app.get('/api/portfolio/:userId', async (req, res) => {
   const { userId } = req.params;
-  const [users] = await pool.query('SELECT liquid_cash FROM users WHERE id = ?', [userId]);
+  const [users] = await pool.query('SELECT liquid_cash, investment_plan FROM users WHERE id = ?', [userId]);
   const [holdings] = await pool.query('SELECT symbol, shares, average_price FROM holdings WHERE user_id = ?', [userId]);
   const [watchlist] = await pool.query('SELECT symbol FROM watchlists WHERE user_id = ?', [userId]);
 
@@ -44,6 +44,7 @@ app.get('/api/portfolio/:userId', async (req, res) => {
 
   res.json({
     liquid_cash: users[0].liquid_cash,
+    investment_plan: users[0].investment_plan,
     holdings,
     watchlist: watchlist.map(w => w.symbol)
   });
@@ -59,6 +60,41 @@ app.post('/api/watchlist', async (req, res) => {
   }
   res.json({ success: true });
 });
+
+// Survey / AI Strategy Endpoint
+app.post('/api/survey/analyze', async (req, res) => {
+  const { userId, answers } = req.body;
+  
+  // Logic for strategy generation
+  const risk = answers.risk || 'moderate';
+  let plan_summary = "";
+  let allocation = {};
+  let advice = {};
+  
+  if (risk === 'aggressive') {
+    plan_summary = "High-growth focus with significant exposure to Indian equities & Precious Metals.";
+    allocation = { "Nifty 50": 40, "Physical Silver": 30, "Crypto": 10, "Gold": 10, "Bonds": 10 };
+    advice = { "Short Term": "Volatility expected, hold steady.", "Long Term": "Commodity cycles and Indian growth will drive outsized returns." };
+  } else if (risk === 'conservative') {
+    plan_summary = "Capital preservation focused strategy balanced with steady income assets.";
+    allocation = { "Fixed Deposits": 40, "Bonds": 30, "Gold": 20, "Index Funds": 10 };
+    advice = { "Short Term": "Safe and steady growth.", "Long Term": "Inflation protection via gold and high-grade debt." };
+  } else {
+    plan_summary = "Balanced growth strategy optimizing for both stability and multi-asset exposure.";
+    allocation = { "Nifty 50": 30, "Physical Silver": 20, "Mutual Funds": 20, "Gold": 15, "Fixed Deposits": 15 };
+    advice = { "Short Term": "Moderate fluctuation, maintain SIP.", "Long Term": "Wealth accumulation through precious metal compounding." };
+  }
+
+  try {
+    const plan = JSON.stringify({ plan_summary, allocation, advice });
+    await pool.query('UPDATE users SET investment_plan = ? WHERE id = ?', [plan, userId]);
+    res.json({ success: true, plan });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update strategic plan' });
+  }
+});
+
 
 // Add invest placeholder logic
 app.post('/api/invest', async (req, res) => {
@@ -275,6 +311,28 @@ app.post('/api/accounts/transfer', async (req, res) => {
     res.status(400).json({ error: error.message });
   } finally {
     connection.release();
+  }
+});
+
+// Admin Database Explorer
+app.get('/api/admin/db-snapshot', async (req, res) => {
+  try {
+    const tables = [
+      'users', 'bank_accounts', 'holdings', 'transactions', 
+      'loans', 'loan_payments', 'fixed_deposits', 
+      'subscriptions', 'bills', 'watchlists'
+    ];
+    
+    const snapshot = {};
+    for (const table of tables) {
+      const [rows] = await pool.query(`SELECT * FROM ${table}`);
+      snapshot[table] = rows;
+    }
+    
+    res.json(snapshot);
+  } catch (err) {
+    console.error('Error fetching DB snapshot:', err);
+    res.status(500).json({ error: 'Failed to fetch database state' });
   }
 });
 

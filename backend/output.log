@@ -1,0 +1,4 @@
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Database and tables initialized successfully.
+Backend running on port 5001

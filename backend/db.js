@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+  const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -31,6 +31,7 @@ async function initDB() {
         password VARCHAR(255),
         name VARCHAR(255),
         liquid_cash DECIMAL(15, 2) DEFAULT 0.00,
+        investment_plan JSON DEFAULT NULL,
         google_id VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );

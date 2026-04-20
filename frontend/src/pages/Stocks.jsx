@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import StockRow from '../components/StockRow';
+import { hallOfFame } from '../constants/hallOfFame';
 
 export default function Stocks() {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -58,7 +59,7 @@ export default function Stocks() {
   });
 
   return (
-    <div className="p-8 pb-20 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="p-4 md:p-8 pb-20 w-full h-full flex flex-col">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-2">Stocks</h1>
         <p className="text-gray-400">Browse and track stock performance</p>
@@ -106,6 +107,9 @@ export default function Stocks() {
                       <div className="flex items-center gap-2">
                          <h4 className="text-white font-bold tracking-wide">{stock.symbol}</h4>
                          <span className="text-[10px] bg-[#222] border border-[#333] px-2 py-0.5 rounded text-gray-400">{stock.category}</span>
+                         {hallOfFame.some(h => h.symbol === stock.symbol) && (
+                           <span className="text-[9px] bg-primary/20 text-primary border border-primary/30 px-2 py-1 rounded-full font-black uppercase tracking-tighter animate-pulse">Hall of Fame</span>
+                         )}
                       </div>
                       <p className="text-sm text-gray-500 font-medium">{stock.name}</p>
                    </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, ArrowLeft, Star, Plus, X, Check } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowLeft, Star, Plus, X, Check, Award, History } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { useAuth } from '../context/AuthContext';
+import { hallOfFame } from '../constants/hallOfFame';
 
 export default function StockDetail() {
   const { symbol } = useParams();
@@ -333,6 +334,71 @@ export default function StockDetail() {
           </div>
         </div>
       )}
+
+      {/* Strategic Legacy: Hall of Fame Section */}
+      {(() => {
+        const fameData = hallOfFame.find(h => h.symbol === symbol?.toUpperCase());
+        if (!fameData) return null;
+        
+        return (
+          <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20">
+                <Award className="text-primary" size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white tracking-tight">Strategic Legacy</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-primary font-black uppercase tracking-[0.2em]">10-Year Hall of Fame</span>
+                  <div className="h-px w-12 bg-primary/30"></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Detailed Description */}
+              <div className="lg:col-span-2 bg-[#151515] border border-white/5 rounded-[32px] p-8 md:p-10 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+                   <History size={200} />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                   Market Analysis
+                </h3>
+                <p className="text-gray-400 leading-relaxed text-sm font-medium relative z-10">
+                   {fameData.detailedDesc}
+                </p>
+              </div>
+
+              {/* Stats & ROI Card */}
+              <div className="bg-gradient-to-br from-primary/10 via-[#111] to-black border border-primary/20 rounded-[32px] p-8 flex flex-col justify-between">
+                <div>
+                   <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-6">Historical Performance</p>
+                   <div className="space-y-6">
+                      <div>
+                         <p className="text-gray-500 text-[10px] font-bold uppercase mb-1">10Y Return on Investment</p>
+                         <p className="text-4xl font-black text-white tracking-tighter">{fameData.stats.decadeReturn}</p>
+                      </div>
+                      <div className="h-px bg-white/5 w-full"></div>
+                      <div>
+                         <p className="text-gray-500 text-[10px] font-bold uppercase mb-1">Strategic Role</p>
+                         <p className="text-lg font-bold text-white">{fameData.stats.role}</p>
+                      </div>
+                      <div>
+                         <p className="text-gray-500 text-[10px] font-bold uppercase mb-1">Volatility Profile</p>
+                         <p className="text-lg font-bold text-white">{fameData.stats.volatility}</p>
+                      </div>
+                   </div>
+                </div>
+                <div className="mt-8">
+                   <div className="text-[9px] text-gray-600 font-bold uppercase tracking-widest leading-tight">
+                      This asset is categorized as a "Grand Historical Giant" based on a decade of compounding excellence.
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

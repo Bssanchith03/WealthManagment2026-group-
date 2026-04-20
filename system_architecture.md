@@ -149,11 +149,11 @@ Sparklines on the Dashboard are generated using **SVG path strings**. We use a t
 
 ### Environment Variables (.env)
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`: Connectivity to your MySQL instance.
-- `PORT`: Usually `5001` for the backend.
+- `PORT`: Usually `5005` for the backend.
 
 ### Port Taxonomy
 - **`:5173`**: Client-side development server.
-- **`:5001`**: Backend execution environment.
+- **`:5005`**: Backend execution environment.
 - **`:8000`**: Financial data stream.
 
 ---
